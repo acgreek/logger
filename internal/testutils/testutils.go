@@ -42,9 +42,9 @@ func NewConfigWithBuffer(t *testing.T, logLevel log.Level) (*log.Config, *bytes.
 
 // BindSentryClient attaches a Sentry server transport (from fake
 // Sentry) to the Sentry SDK's CurrentHub .It assumes that a logger has
-// been instantiated, which initializes the Sentry SDK.
-// Note this is data-race free but not race-condition free on the Sentry Hub.
-// Use with caution from multiple goroutines.
+// been instantiated, which initializes the Sentry SDK. Note: this is
+// data-race free but not race-condition free on the Sentry Hub. Use
+// with caution from multiple goroutines.
 func BindSentryClient(t *testing.T, tcp *http.Transport) {
 	t.Helper()
 
@@ -102,6 +102,8 @@ Sentry server message received:
 
 	// Receives a message from the channel and returns it or times out.
 	nextMessage := func(t *testing.T) []byte {
+		t.Helper()
+
 		var byt []byte
 
 		timer := time.NewTimer(time.Millisecond * 500)
@@ -120,7 +122,7 @@ Sentry server message received:
 // AssertTrue is a semantic test assertion for object truthiness.
 func AssertTrue(t *testing.T, object bool) {
 	t.Helper()
-	if object != true {
+	if !object {
 		t.Errorf("is not true")
 	}
 }
@@ -128,7 +130,7 @@ func AssertTrue(t *testing.T, object bool) {
 // AssertFalse is a semantic test assertion for object truthiness.
 func AssertFalse(t *testing.T, object bool) {
 	t.Helper()
-	if object == true {
+	if object {
 		t.Errorf("is not false")
 	}
 }
@@ -184,7 +186,8 @@ func AssertNotNil(t *testing.T, object interface{}) {
 	assertNility(t, object, false)
 }
 
-// AssertStringContains is a semantic test assertion for partial string matching.
+// AssertStringContains is a semantic test assertion for partial string
+// matching.
 func AssertStringContains(t *testing.T, expectedContained string, actualContaining string) {
 	t.Helper()
 	if !strings.Contains(actualContaining, expectedContained) {
@@ -194,6 +197,22 @@ func AssertStringContains(t *testing.T, expectedContained string, actualContaini
 			strings.Trim(actualContaining, "\n"),
 		)
 	}
+}
+
+// AssertNotPanics is a semantic test assertion that a function does not
+// panic.
+func AssertNotPanics(t *testing.T, fn func()) {
+	t.Helper()
+
+	didPanic := true
+	defer func() {
+		if didPanic {
+			t.Errorf("did panic")
+		}
+	}()
+
+	fn()
+	didPanic = false
 }
 
 // NOTE(PH): does not handle bytes well, update if we need to check
